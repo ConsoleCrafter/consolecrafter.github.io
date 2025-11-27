@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BEmbed - Discord Webhook Builder</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .discord-embed {
+            border-left: 4px solid;
+        }
+        
+        input[type="color"] {
+            -webkit-appearance: none;
+            border: none;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            border-radius: 8px;
+        }
+        
+        input[type="color"]::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+        
+        input[type="color"]::-webkit-color-swatch {
+            border: 2px solid #4b5563;
+            border-radius: 6px;
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gray-950 text-gray-100">
+    <nav class="border-b border-gray-800 bg-gray-950/70 backdrop-blur-lg sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+            <a href="#" class="text-xl font-bold text-white hover:opacity-80 transition-opacity">
+                BEmbed
+            </a>
+            <div class="flex gap-2">
+                <button onclick="toggleTheme()" class="p-2 rounded-lg hover:bg-gray-800 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-4 py-10">
+        <div class="text-center mb-10">
+            <h1 class="text-4xl font-bold mb-4">BEmbed - Discord Webhook Builder</h1>
+            <p class="text-gray-400 max-w-2xl mx-auto">
+                Erstelle professionelle Discord Embeds und sende sie direkt an deinen Webhook.
+                <br>Keine Bots erforderlich!
+            </p>
+        </div>
+
+        <div class="bg-gray-900 rounded-2xl shadow-2xl border border-gray-800 overflow-hidden">
+            <div class="p-6">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div class="space-y-6">
+                        <h2 class="text-2xl font-bold mb-6">Webhook Einstellungen</h2>
+                        
+                        <div>
+                            <label class="block text-sm font-medium mb-2 text-gray-300">Webhook URL *</label>
+                            <input 
+                                type="text" 
+                                id="webhookUrl" 
+                                placeholder="https://discord.com/api/webhooks/..." 
+                                class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                            >
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium mb-2 text-gray-300">Webhook Name</label>
+                            <input 
+                                type="text" 
+                                id="webhookName" 
+                                placeholder="Mein Bot" 
+                                class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                            >
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium mb-2 text-gray-300">Avatar</label>
+                            <div class="flex gap-3">
+                                <input 
+                                    type="text" 
+                                    id="avatarUrl" 
+                                    placeholder="https://example.com/avatar.png" 
+                                    class="flex-1 px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                                >
+                                <label class="px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg hover:bg-gray-700 cursor-pointer transition-colors flex items-center gap-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                        <polyline points="17 8 12 3 7 8"></polyline>
+                                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                                    </svg>
+                                    Upload
+                                    <input type="file" id="avatarFile" accept="image/*" class="hidden">
+                                </label>
+                            </div>
+                        </div>
+
+                        <hr class="border-gray-800 my-6">
+
+                        <h3 class="text-xl font-bold mb-4">Embed Optionen</h3>
+
+                        <div>
+                            <label class="block text-sm font-medium mb-2 text-gray-300">Titel</label>
+                            <input 
+                                type="text" 
+                                id="embedTitle" 
+                                placeholder="Lorem Ipsum Dolor" 
+                                class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                            >
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium mb-2 text-gray-300">Beschreibung</label>
+                            <textarea 
+                                id="embedDescription" 
+                                rows="6" 
+                                placeholder="Lorem ipsum dolor sit amet, consectetur adipiscing elit..." 
+                                class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all resize-none"
+                            ></textarea>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium mb-2 text-gray-300">Farbe</label>
+                            <div class="flex items-center gap-3">
+                                <input 
+                                    type="color" 
+                                    id="embedColor" 
+                                    value="#5865F2"
+                                    class="bg-gray-800"
+                                >
+                                <input 
+                                    type="text" 
+                                    id="embedColorHex" 
+                                    value="#5865F2" 
+                                    class="flex-1 px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                                >
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium mb-2 text-gray-300">Bild URL</label>
+                            <input 
+                                type="text" 
+                                id="embedImage" 
+                                placeholder="https://example.com/image.png" 
+                                class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                            >
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium mb-2 text-gray-300">Footer Text</label>
+                            <input 
+                                type="text" 
+                                id="embedFooter" 
+                                placeholder="Lorem ipsum dolor sit amet" 
+                                class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                            >
+                        </div>
+                    </div>
+
+                    <div class="space-y-6">
+                        <h2 class="text-2xl font-bold mb-6">Vorschau</h2>
+                        
+                        <div class="bg-gray-800 rounded-lg p-4">
+                            <div class="flex items-center gap-3 mb-4" id="webhookHeader">
+                                <img 
+                                    id="previewAvatar" 
+                                    src="https://cdn.discordapp.com/embed/avatars/0.png" 
+                                    alt="Avatar" 
+                                    class="w-10 h-10 rounded-full"
+                                >
+                                <span id="previewWebhookName" class="font-semibold">Webhook</span>
+                            </div>
+
+                            <div id="embedPreview" class="discord-embed bg-gray-900 rounded-lg overflow-hidden" style="border-left-color: #5865F2;">
+                                <div class="p-4">
+                                    <h4 id="previewTitle" class="font-bold text-lg text-blue-400 mb-2">
+                                        Lorem Ipsum Dolor
+                                    </h4>
+                                    <p id="previewDescription" class="text-gray-300 whitespace-pre-wrap mb-3">
+                                        Lorem ipsum dolor sit amet, consectetur adipiscing elit...
+                                    </p>
+                                    <img id="previewImage" src="" alt="" class="rounded-lg max-w-full hidden mb-3">
+                                    <div id="previewFooter" class="text-xs text-gray-400">
+                                        Lorem ipsum dolor sit amet
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button 
+                            onclick="sendWebhook()" 
+                            class="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2 shadow-lg"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="22" y1="2" x2="11" y2="13"></line>
+                                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                            </svg>
+                            Embed Senden
+                        </button>
+
+                        <div id="statusMessage" class="hidden p-4 rounded-lg"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="mt-16 py-8 border-t border-gray-800">
+        <div class="max-w-7xl mx-auto px-4 text-center text-gray-400 text-sm">
+            <p>© 2025 BEmbed - Discord Webhook Builder</p>
+        </div>
+    </footer>
+
+    <script>
+        const inputs = {
+            webhookName: document.getElementById('webhookName'),
+            avatarUrl: document.getElementById('avatarUrl'),
+            embedTitle: document.getElementById('embedTitle'),
+            embedDescription: document.getElementById('embedDescription'),
+            embedColor: document.getElementById('embedColor'),
+            embedColorHex: document.getElementById('embedColorHex'),
+            embedImage: document.getElementById('embedImage'),
+            embedFooter: document.getElementById('embedFooter'),
+            avatarFile: document.getElementById('avatarFile')
+        };
+
+        const previews = {
+            webhookName: document.getElementById('previewWebhookName'),
+            avatar: document.getElementById('previewAvatar'),
+            title: document.getElementById('previewTitle'),
+            description: document.getElementById('previewDescription'),
+            embed: document.getElementById('embedPreview'),
+            image: document.getElementById('previewImage'),
+            footer: document.getElementById('previewFooter')
+        };
+
+        inputs.webhookName.addEventListener('input', (e) => {
+            previews.webhookName.textContent = e.target.value || 'Webhook';
+        });
+
+        inputs.avatarUrl.addEventListener('input', (e) => {
+            if (e.target.value) {
+                previews.avatar.src = e.target.value;
+            }
+        });
+
+        inputs.avatarFile.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    previews.avatar.src = event.target.result;
+                    inputs.avatarUrl.value = '';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        inputs.embedTitle.addEventListener('input', (e) => {
+            previews.title.textContent = e.target.value || '📜 BlockBuild.eu – Discord Regelwerk';
+        });
+
+        inputs.embedDescription.addEventListener('input', (e) => {
+            previews.description.textContent = e.target.value || 'Deine Beschreibung erscheint hier...';
+        });
+
+        inputs.embedColor.addEventListener('input', (e) => {
+            const color = e.target.value;
+            inputs.embedColorHex.value = color;
+            previews.embed.style.borderLeftColor = color;
+        });
+
+        inputs.embedColorHex.addEventListener('input', (e) => {
+            const color = e.target.value;
+            if (/^#[0-9A-F]{6}$/i.test(color)) {
+                inputs.embedColor.value = color;
+                previews.embed.style.borderLeftColor = color;
+            }
+        });
+
+        inputs.embedImage.addEventListener('input', (e) => {
+            if (e.target.value) {
+                previews.image.src = e.target.value;
+                previews.image.classList.remove('hidden');
+            } else {
+                previews.image.classList.add('hidden');
+            }
+        });
+
+        inputs.embedFooter.addEventListener('input', (e) => {
+            previews.footer.textContent = e.target.value || 'BlockBuild.eu | Stand: 2025';
+            previews.footer.style.display = e.target.value ? 'block' : 'block';
+        });
+
+        async function sendWebhook() {
+            const webhookUrl = document.getElementById('webhookUrl').value;
+            const statusMessage = document.getElementById('statusMessage');
+
+            if (!webhookUrl) {
+                showStatus('Bitte gib eine Webhook URL ein!', 'error');
+                return;
+            }
+
+            const embed = {
+                title: inputs.embedTitle.value || undefined,
+                description: inputs.embedDescription.value || undefined,
+                color: parseInt(inputs.embedColor.value.replace('#', ''), 16),
+                image: inputs.embedImage.value ? { url: inputs.embedImage.value } : undefined,
+                footer: inputs.embedFooter.value ? { text: inputs.embedFooter.value } : undefined
+            };
+
+            Object.keys(embed).forEach(key => embed[key] === undefined && delete embed[key]);
+
+            const payload = {
+                username: inputs.webhookName.value || undefined,
+                avatar_url: inputs.avatarUrl.value || undefined,
+                embeds: [embed]
+            };
+
+            try {
+                const response = await fetch(webhookUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    showStatus('✅ Embed erfolgreich gesendet!', 'success');
+                } else {
+                    showStatus('❌ Fehler beim Senden: ' + response.status, 'error');
+                }
+            } catch (error) {
+                showStatus('❌ Fehler: ' + error.message, 'error');
+            }
+        }
+
+        function showStatus(message, type) {
+            const statusMessage = document.getElementById('statusMessage');
+            statusMessage.textContent = message;
+            statusMessage.className = `p-4 rounded-lg ${type === 'success' ? 'bg-green-900/50 text-green-200' : 'bg-red-900/50 text-red-200'}`;
+            statusMessage.classList.remove('hidden');
+            
+            setTimeout(() => {
+                statusMessage.classList.add('hidden');
+            }, 5000);
+        }
+
+        function toggleTheme() {
+            document.body.classList.toggle('light-mode');
+        }
+    </script>
+</body>
+</html>
