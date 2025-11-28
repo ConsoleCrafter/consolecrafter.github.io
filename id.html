@@ -118,84 +118,17 @@
             }
 
             try {
-                let data = null;
-                let apiWorked = false;
-
-                // Versuche mehrere APIs
-                try {
-                    const response = await fetch(`https://discordlookup.mesalytic.moe/v1/user/${userId}`);
-                    if (response.ok) {
-                        data = await response.json();
-                        apiWorked = true;
-                    }
-                } catch (e) {
-                    console.log('API 1 failed, trying alternative...');
-                }
-
-                if (!apiWorked) {
-                    try {
-                        const response = await fetch(`https://discord.id/${userId}/json`);
-                        if (response.ok) {
-                            data = await response.json();
-                            apiWorked = true;
-                        }
-                    } catch (e) {
-                        console.log('API 2 failed');
-                    }
-                }
-
                 // Berechne Erstellungsdatum aus Snowflake
                 const snowflake = BigInt(userId);
                 const timestamp = (snowflake >> 22n) + 1420070400000n;
                 const created = new Date(Number(timestamp));
 
-                if (apiWorked && data) {
-                    // Vollständige Daten verfügbar
-                    const avatarHash = data.avatar || data.avatar_url;
-                    const avatarUrl = avatarHash 
-                        ? `https://cdn.discordapp.com/avatars/${userId}/${avatarHash}.png?size=256` 
-                        : `https://cdn.discordapp.com/embed/avatars/${parseInt(userId) % 5}.png?size=256`;
-                    document.getElementById('avatar').src = avatarUrl;
-
-                    const username = data.global_name || data.username || 'User';
-                    document.getElementById('username').textContent = username;
-                    
-                    const discrim = data.discriminator || data.discrim || '0';
-                    const tag = discrim === "0" || discrim === "0000"
-                        ? `@${data.username}` 
-                        : `${data.username}#${discrim}`;
-                    document.getElementById('tag').textContent = tag;
-
-                    // Badges
-                    const badgesDiv = document.getElementById('badges');
-                    badgesDiv.innerHTML = '';
-                    const badgeMap = {
-                        1: "📊 Discord Employee",
-                        2: "👑 Partnered Server Owner",
-                        4: "🎉 HypeSquad Events",
-                        8: "🐛 Bug Hunter Level 1",
-                        64: "⭐ Early Supporter",
-                        131072: "🔧 Verified Bot Developer",
-                        4194304: "💎 Nitro",
-                        262144: "🐛 Bug Hunter Level 2"
-                    };
-                    const flags = parseInt(data.public_flags || data.flags || 0);
-                    for (const [value, name] of Object.entries(badgeMap)) {
-                        if (flags & parseInt(value)) {
-                            const badge = document.createElement('span');
-                            badge.className = "px-3 py-1 bg-gray-800 rounded-full text-xs font-medium text-blue-400";
-                            badge.textContent = name;
-                            badgesDiv.appendChild(badge);
-                        }
-                    }
-                } else {
-                    // Fallback: Zeige grundlegende berechnete Infos
-                    document.getElementById('avatar').src = `https://cdn.discordapp.com/embed/avatars/${parseInt(userId) % 5}.png?size=256`;
-                    document.getElementById('username').textContent = 'Discord User';
-                    document.getElementById('tag').textContent = `ID: ${userId}`;
-                    document.getElementById('badges').innerHTML = '<span class="text-gray-400 text-sm">⚠️ Detaillierte Infos nicht verfügbar</span>';
-                }
-
+                // Zeige grundlegende Infos (ohne externe API)
+                document.getElementById('avatar').src = `https://cdn.discordapp.com/embed/avatars/${parseInt(userId) % 5}.png?size=256`;
+                document.getElementById('username').textContent = 'Discord User';
+                document.getElementById('tag').textContent = `ID: ${userId}`;
+                document.getElementById('badges').innerHTML = '<span class="text-gray-400 text-sm">💡 Tipp: Für detaillierte Infos verwende einen Discord Bot</span>';
+                
                 document.getElementById('id').textContent = userId;
                 document.getElementById('created').textContent = created.toLocaleDateString('de-DE', {
                     year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
