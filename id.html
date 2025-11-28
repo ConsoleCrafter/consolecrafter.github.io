@@ -123,8 +123,11 @@
                 const timestamp = (snowflake >> 22n) + 1420070400000n;
                 const created = new Date(Number(timestamp));
 
+                // Berechne Default Avatar Index aus User ID
+                const defaultAvatarIndex = Number((BigInt(userId) >> 22n) % 6n);
+                
                 // Zeige grundlegende Infos (ohne externe API)
-                document.getElementById('avatar').src = `https://cdn.discordapp.com/embed/avatars/${parseInt(userId) % 5}.png?size=256`;
+                document.getElementById('avatar').src = `https://cdn.discordapp.com/embed/avatars/${defaultAvatarIndex}.png`;
                 document.getElementById('username').textContent = 'Discord User';
                 document.getElementById('tag').textContent = `ID: ${userId}`;
                 document.getElementById('badges').innerHTML = '<span class="text-gray-400 text-sm">💡 Tipp: Für detaillierte Infos verwende einen Discord Bot</span>';
