@@ -63,7 +63,7 @@
                     <div>
                         <h2 id="username" class="text-3xl font-bold"></h2>
                         <p id="tag" class="text-xl text-gray-400"></p>
-                        <div id="badges" class="flex gap-2 mt-3"></div>
+                        <div id="badges" class="flex gap-2 mt-3 flex-wrap"></div>
                     </div>
                 </div>
 
@@ -76,6 +76,11 @@
                         <p class="text-gray-400 text-sm">Account erstellt am</p>
                         <p id="created" class="font-semibold"></p>
                     </div>
+                </div>
+
+                <div class="bg-gray-800/50 rounded-xl p-5 border border-gray-700">
+                    <p class="text-gray-400 text-sm font-medium">Bio / Über mich</p>
+                    <p id="bio" class="text-gray-300 mt-2"></p>
                 </div>
 
                 <div class="text-center">
@@ -128,40 +133,49 @@
             }
 
             try {
-                const response = await fetch(`https://discordlookup-api.glitch.me/v1/user/${userId}`);
+                // Fallback zu einem stabilen, öffentlichen API (discordlookup.com)
+                const response = await fetch(`https://discordlookup.com/api/user/${userId}`);
                 const data = await response.json();
 
                 if (!response.ok || data.message) throw new Error("User not found");
 
-                // Avatar
-                document.getElementById('avatar').src = `https://cdn.discordapp.com/avatars/${data.id}/${data.avatar}.webp?size=256`;
+                // Avatar (dynamische Größe, fallback zu default)
+                const avatarHash = data.avatar;
+                const avatarUrl = avatarHash 
+                    ? `https://cdn.discordapp.com/avatars/${data.id}/${avatarHash}.png?size=256` 
+                    : `https://cdn.discordapp.com/embed/avatars/${parseInt(data.id) % 5}.png?size=256`;
+                document.getElementById('avatar').src = avatarUrl;
 
-                // Username + Tag
-                const username = data.global_name || data.username;
-                document.getElementById('username').textContent = username || 'Unbekannt';
-                document.getElementById('tag').textContent = data.discriminator === "0" 
+                // Username + Tag (handhabt neue global_name / username#discriminator)
+                const username = data.global_name || data.username || 'Unbekannt';
+                document.getElementById('username').textContent = username;
+                const tag = data.discriminator === "0" 
                     ? `@${data.username}` 
                     : `${data.username}#${data.discriminator}`;
+                document.getElementById('tag').textContent = tag;
 
-                // Badges
+                // Bio (falls verfügbar)
+                document.getElementById('bio').textContent = data.bio || 'Keine Bio angegeben.';
+
+                // Badges (vereinfacht, basierend auf public_flags)
                 const badgesDiv = document.getElementById('badges');
                 badgesDiv.innerHTML = '';
                 const badgeMap = {
-                    1: "Discord Employee",
-                    2: "Partnered Server Owner",
-                    4: "HypeSquad Events",
-                    8: "Bug Hunter Level 1",
-                    64: "Early Supporter",
-                    131072: "Early Verified Bot Developer",
-                    4194304: "Nitro",
-                    262144: "Bug Hunter Level 2"
+                    1: "📊 Discord Employee",
+                    2: "👑 Partnered Server Owner",
+                    4: "🎉 HypeSquad Events",
+                    8: "🐛 Bug Hunter Level 1",
+                    64: "⭐ Early Supporter",
+                    131072: "🔧 Verified Bot Developer",
+                    4194304: "💎 Nitro",
+                    262144: "🐛 Bug Hunter Level 2"
                 };
                 if (data.public_flags) {
-                    let flags = data.public_flags;
+                    let flags = parseInt(data.public_flags);
                     for (const [value, name] of Object.entries(badgeMap)) {
                         if (flags & parseInt(value)) {
                             const badge = document.createElement('span');
-                            badge.className = "px-3 py-1 bg-gray-800 rounded-full text-xs font-medium";
+                            badge.className = "px-3 py-1 bg-gray-800 rounded-full text-xs font-medium text-blue-400";
                             badge.textContent = name;
                             badgesDiv.appendChild(badge);
                         }
@@ -171,8 +185,10 @@
                 // ID
                 document.getElementById('id').textContent = data.id;
 
-                // Erstellt am
-                const created = new Date((BigInt(data.id) >> BigInt(22)) + 1420070400000);
+                // Erstellt am (Snowflake zu Datum)
+                const snowflake = BigInt(data.id);
+                const timestamp = (snowflake >> BigInt(22n)) + 1420070400000n;
+                const created = new Date(Number(timestamp));
                 document.getElementById('created').textContent = created.toLocaleDateString('de-DE', {
                     year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
                 });
@@ -180,6 +196,7 @@
                 loading.classList.add('hidden');
                 result.classList.remove('hidden');
             } catch (err) {
+                console.error('Fehler:', err);
                 loading.classList.add('hidden');
                 error.classList.remove('hidden');
             }
@@ -188,10 +205,11 @@
         function copyUserInfo() {
             const userId = document.getElementById('userId').value.trim();
             if (userId) {
-                navigator.clipboard.writeText(userId);
-                const feedback = document.getElementById('copyFeedback');
-                feedback.classList.remove('hidden');
-                setTimeout(() => feedback.classList.add('hidden'), 3000);
+                navigator.clipboard.writeText(userId).then(() => {
+                    const feedback = document.getElementById('copyFeedback');
+                    feedback.classList.remove('hidden');
+                    setTimeout(() => feedback.classList.add('hidden'), 3000);
+                });
             }
         }
 
