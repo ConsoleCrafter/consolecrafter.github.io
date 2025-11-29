@@ -147,14 +147,6 @@
                                 </svg>
                                 UUID kopieren
                             </button>
-                            <a id="namemc" href="" target="_blank" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors text-sm flex items-center gap-2">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                                    <polyline points="15 3 21 3 21 9"></polyline>
-                                    <line x1="10" y1="14" x2="21" y2="3"></line>
-                                </svg>
-                                NameMC öffnen
-                            </a>
                         </div>
                     </div>
                 </div>
@@ -232,96 +224,79 @@
             loading.classList.remove('hidden');
 
             try {
-                // Verwende PlayerDB API (CORS-freundlich)
-                const playerRes = await fetch(`https://playerdb.co/api/player/minecraft/${username}`);
+                // Verwende Ashcon API - die beste und zuverlässigste API
+                const response = await fetch(`https://api.ashcon.app/mojang/v2/user/${username}`);
                 
-                if (!playerRes.ok) {
+                if (!response.ok) {
                     throw new Error('Player not found');
                 }
 
-                const playerData = await playerRes.json();
-                
-                if (!playerData.success || !playerData.data) {
-                    throw new Error('Player not found');
-                }
+                const data = await response.json();
+                currentUUID = data.uuid.replace(/-/g, '');
+                const formattedUUID = data.uuid;
 
-                const player = playerData.data.player;
-                currentUUID = player.raw_id || player.id.replace(/-/g, '');
-                const formattedUUID = player.id;
-
-                document.getElementById('playerName').textContent = player.username;
+                document.getElementById('playerName').textContent = data.username;
                 document.getElementById('playerUUID').textContent = formattedUUID;
                 
-                // Verwende Crafatar für Skins (funktioniert mit UUID)
-                const cleanUUID = currentUUID;
-                document.getElementById('playerHead').src = `https://crafatar.com/avatars/${cleanUUID}?size=128&overlay`;
-                document.getElementById('skinFront').src = `https://crafatar.com/renders/body/${cleanUUID}?size=256&overlay`;
-                document.getElementById('skinBack').src = `https://crafatar.com/renders/body/${cleanUUID}?size=256&overlay&default=MHF_Steve`;
-                document.getElementById('skinDownload').href = `https://crafatar.com/skins/${cleanUUID}`;
-                document.getElementById('namemc').href = `https://namemc.com/profile/${player.username}`;
+                // Verwende mc-heads.net als Alternative zu Crafatar
+                document.getElementById('playerHead').src = `https://mc-heads.net/avatar/${data.uuid}/128`;
+                document.getElementById('skinFront').src = `https://mc-heads.net/body/${data.uuid}/256`;
+                document.getElementById('skinBack').src = `https://mc-heads.net/body/${data.uuid}/256/left`;
+                document.getElementById('skinDownload').href = `https://mc-heads.net/download/${data.uuid}`;
 
-                // Account-Erstellungsdatum aus PlayerDB
-                if (player.meta && player.meta.created_at) {
-                    const createdDate = new Date(player.meta.created_at);
+                // Account-Erstellungsdatum
+                if (data.created_at) {
+                    const createdDate = new Date(data.created_at);
                     document.getElementById('accountCreated').textContent = createdDate.toLocaleDateString('de-DE', {
-                        year: 'numeric', month: 'long', day: 'numeric'
+                        year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
                     });
                 } else {
                     document.getElementById('accountCreated').textContent = 'Nicht verfügbar';
                 }
 
-                // Versuche Namenshistorie von Ashcon API zu holen
-                try {
-                    const ashconRes = await fetch(`https://api.ashcon.app/mojang/v2/user/${username}`);
-                    if (ashconRes.ok) {
-                        const ashconData = await ashconRes.json();
-                        const nameHistory = ashconData.username_history || [{ username: player.username }];
+                // Namenshistorie
+                const nameHistory = data.username_history || [];
+                document.getElementById('nameChanges').textContent = Math.max(0, nameHistory.length - 1).toString();
+
+                if (nameHistory.length > 0) {
+                    const historyHTML = nameHistory.map((entry, index) => {
+                        const isFirst = index === 0;
+                        const isCurrent = index === nameHistory.length - 1;
                         
-                        document.getElementById('nameChanges').textContent = Math.max(0, nameHistory.length - 1).toString();
-
-                        const historyHTML = nameHistory.reverse().map((entry, index) => {
-                            const isFirst = index === nameHistory.length - 1;
-                            const date = entry.changed_at ? new Date(entry.changed_at).toLocaleDateString('de-DE', {
-                                year: 'numeric', month: 'long', day: 'numeric'
-                            }) : 'Originalname';
-                            
-                            return `
-                                <div class="timeline-item pb-6">
-                                    <div class="bg-gray-800/50 rounded-xl p-4 border border-gray-700">
-                                        <div class="flex items-center justify-between flex-wrap gap-2">
-                                            <span class="font-bold text-lg">${entry.username}</span>
-                                            <span class="text-gray-400 text-sm">${date}</span>
-                                        </div>
-                                        ${isFirst ? '<span class="inline-block mt-2 px-3 py-1 bg-blue-600/20 text-blue-400 rounded-full text-xs font-semibold">Originalname</span>' : ''}
-                                    </div>
-                                </div>
-                            `;
-                        }).join('');
-
-                        document.getElementById('nameHistory').innerHTML = historyHTML;
-                    } else {
-                        // Fallback: Nur aktueller Name
-                        document.getElementById('nameChanges').textContent = '0';
-                        document.getElementById('nameHistory').innerHTML = `
+                        let dateText = '';
+                        if (entry.changed_at) {
+                            const date = new Date(entry.changed_at);
+                            dateText = date.toLocaleDateString('de-DE', {
+                                year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                            });
+                        } else if (isFirst) {
+                            dateText = 'Originalname';
+                        } else {
+                            dateText = 'Unbekannt';
+                        }
+                        
+                        return `
                             <div class="timeline-item pb-6">
                                 <div class="bg-gray-800/50 rounded-xl p-4 border border-gray-700">
                                     <div class="flex items-center justify-between flex-wrap gap-2">
-                                        <span class="font-bold text-lg">${player.username}</span>
-                                        <span class="text-gray-400 text-sm">Aktueller Name</span>
+                                        <span class="font-bold text-lg">${entry.username}</span>
+                                        <span class="text-gray-400 text-sm">${dateText}</span>
                                     </div>
-                                    <span class="inline-block mt-2 px-3 py-1 bg-blue-600/20 text-blue-400 rounded-full text-xs font-semibold">Originalname</span>
+                                    ${isCurrent ? '<span class="inline-block mt-2 px-3 py-1 bg-green-600/20 text-green-400 rounded-full text-xs font-semibold">Aktueller Name</span>' : ''}
+                                    ${isFirst ? '<span class="inline-block mt-2 px-3 py-1 bg-blue-600/20 text-blue-400 rounded-full text-xs font-semibold">Originalname</span>' : ''}
                                 </div>
                             </div>
                         `;
-                    }
-                } catch (nameErr) {
-                    // Fallback wenn Namenshistorie nicht verfügbar
-                    document.getElementById('nameChanges').textContent = '0';
+                    }).reverse().join('');
+
+                    document.getElementById('nameHistory').innerHTML = historyHTML;
+                } else {
+                    // Fallback wenn keine Historie vorhanden
                     document.getElementById('nameHistory').innerHTML = `
                         <div class="timeline-item pb-6">
                             <div class="bg-gray-800/50 rounded-xl p-4 border border-gray-700">
                                 <div class="flex items-center justify-between flex-wrap gap-2">
-                                    <span class="font-bold text-lg">${player.username}</span>
+                                    <span class="font-bold text-lg">${data.username}</span>
                                     <span class="text-gray-400 text-sm">Aktueller Name</span>
                                 </div>
                                 <span class="inline-block mt-2 px-3 py-1 bg-blue-600/20 text-blue-400 rounded-full text-xs font-semibold">Originalname</span>
@@ -340,26 +315,9 @@
             }
         }
 
-        function formatUUID(uuid) {
-            return uuid.replace(/(.{8})(.{4})(.{4})(.{4})(.{12})/, '$1-$2-$3-$4-$5');
-        }
-
-        function extractTimestamp(uuid) {
-            const timeLow = parseInt(uuid.substring(0, 8), 16);
-            const timeMid = parseInt(uuid.substring(8, 12), 16);
-            const timeHiAndVersion = parseInt(uuid.substring(12, 16), 16);
-            
-            const time = (timeHiAndVersion & 0x0FFF) * Math.pow(2, 48) + 
-                         timeMid * Math.pow(2, 32) + 
-                         timeLow;
-            
-            const timestamp = (time - 0x01b21dd213814000) / 10000;
-            return timestamp;
-        }
-
         function copyUUID() {
-            const formatted = formatUUID(currentUUID);
-            navigator.clipboard.writeText(formatted).then(() => {
+            const uuidText = document.getElementById('playerUUID').textContent;
+            navigator.clipboard.writeText(uuidText).then(() => {
                 const feedback = document.getElementById('copyFeedback');
                 feedback.classList.remove('hidden');
                 setTimeout(() => feedback.classList.add('hidden'), 3000);
