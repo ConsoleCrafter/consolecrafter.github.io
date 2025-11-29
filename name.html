@@ -224,74 +224,102 @@
             loading.classList.remove('hidden');
 
             try {
-                // Verwende Ashcon API - die beste und zuverlässigste API
-                const response = await fetch(`https://api.ashcon.app/mojang/v2/user/${username}`);
+                // Methode 1: Versuche Minetools API
+                let data = null;
+                let uuid = null;
                 
-                if (!response.ok) {
+                try {
+                    const minetoolsRes = await fetch(`https://api.minetools.eu/uuid/${username}`);
+                    const minetoolsData = await minetoolsRes.json();
+                    
+                    if (minetoolsData.id) {
+                        uuid = minetoolsData.id;
+                        data = {
+                            username: minetoolsData.name,
+                            uuid: formatUUID(uuid),
+                            uuid_raw: uuid
+                        };
+                    }
+                } catch (e) {
+                    console.log('Minetools failed, trying alternative...');
+                }
+
+                // Methode 2: Versuche PlayerDB als Fallback
+                if (!data) {
+                    const playerdbRes = await fetch(`https://playerdb.co/api/player/minecraft/${username}`);
+                    const playerdbData = await playerdbRes.json();
+                    
+                    if (playerdbData.success && playerdbData.data && playerdbData.data.player) {
+                        const player = playerdbData.data.player;
+                        uuid = player.raw_id || player.id.replace(/-/g, '');
+                        data = {
+                            username: player.username,
+                            uuid: player.id,
+                            uuid_raw: uuid
+                        };
+                    }
+                }
+
+                if (!data || !uuid) {
                     throw new Error('Player not found');
                 }
 
-                const data = await response.json();
-                currentUUID = data.uuid.replace(/-/g, '');
-                const formattedUUID = data.uuid;
-
-                document.getElementById('playerName').textContent = data.username;
-                document.getElementById('playerUUID').textContent = formattedUUID;
+                currentUUID = uuid;
                 
-                // Verwende mc-heads.net als Alternative zu Crafatar
-                document.getElementById('playerHead').src = `https://mc-heads.net/avatar/${data.uuid}/128`;
-                document.getElementById('skinFront').src = `https://mc-heads.net/body/${data.uuid}/256`;
-                document.getElementById('skinBack').src = `https://mc-heads.net/body/${data.uuid}/256/left`;
-                document.getElementById('skinDownload').href = `https://mc-heads.net/download/${data.uuid}`;
+                document.getElementById('playerName').textContent = data.username;
+                document.getElementById('playerUUID').textContent = data.uuid;
+                
+                // Verwende mc-heads.net für Skins
+                document.getElementById('playerHead').src = `https://mc-heads.net/avatar/${uuid}/128`;
+                document.getElementById('skinFront').src = `https://mc-heads.net/body/${uuid}/256`;
+                document.getElementById('skinBack').src = `https://mc-heads.net/body/${uuid}/256/left`;
+                document.getElementById('skinDownload').href = `https://mc-heads.net/download/${uuid}`;
 
-                // Account-Erstellungsdatum
-                if (data.created_at) {
-                    const createdDate = new Date(data.created_at);
-                    document.getElementById('accountCreated').textContent = createdDate.toLocaleDateString('de-DE', {
-                        year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
-                    });
-                } else {
-                    document.getElementById('accountCreated').textContent = 'Nicht verfügbar';
-                }
-
-                // Namenshistorie
-                const nameHistory = data.username_history || [];
-                document.getElementById('nameChanges').textContent = Math.max(0, nameHistory.length - 1).toString();
-
-                if (nameHistory.length > 0) {
-                    const historyHTML = nameHistory.map((entry, index) => {
-                        const isFirst = index === 0;
-                        const isCurrent = index === nameHistory.length - 1;
+                // Versuche Namenshistorie von Electroid API zu holen
+                try {
+                    const nameHistoryRes = await fetch(`https://api.electroid.net/history/${uuid}`);
+                    const nameHistoryData = await nameHistoryRes.json();
+                    
+                    if (Array.isArray(nameHistoryData) && nameHistoryData.length > 0) {
+                        document.getElementById('nameChanges').textContent = Math.max(0, nameHistoryData.length - 1).toString();
                         
-                        let dateText = '';
-                        if (entry.changed_at) {
-                            const date = new Date(entry.changed_at);
-                            dateText = date.toLocaleDateString('de-DE', {
-                                year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
-                            });
-                        } else if (isFirst) {
-                            dateText = 'Originalname';
-                        } else {
-                            dateText = 'Unbekannt';
-                        }
-                        
-                        return `
-                            <div class="timeline-item pb-6">
-                                <div class="bg-gray-800/50 rounded-xl p-4 border border-gray-700">
-                                    <div class="flex items-center justify-between flex-wrap gap-2">
-                                        <span class="font-bold text-lg">${entry.username}</span>
-                                        <span class="text-gray-400 text-sm">${dateText}</span>
+                        const historyHTML = nameHistoryData.map((entry, index) => {
+                            const isFirst = index === 0;
+                            const isCurrent = index === nameHistoryData.length - 1;
+                            
+                            let dateText = '';
+                            if (entry.changedToAt) {
+                                const date = new Date(entry.changedToAt);
+                                dateText = date.toLocaleDateString('de-DE', {
+                                    year: 'numeric', month: 'long', day: 'numeric'
+                                });
+                            } else if (isFirst) {
+                                dateText = 'Originalname';
+                            } else {
+                                dateText = 'Unbekannt';
+                            }
+                            
+                            return `
+                                <div class="timeline-item pb-6">
+                                    <div class="bg-gray-800/50 rounded-xl p-4 border border-gray-700">
+                                        <div class="flex items-center justify-between flex-wrap gap-2">
+                                            <span class="font-bold text-lg">${entry.name}</span>
+                                            <span class="text-gray-400 text-sm">${dateText}</span>
+                                        </div>
+                                        ${isCurrent ? '<span class="inline-block mt-2 px-3 py-1 bg-green-600/20 text-green-400 rounded-full text-xs font-semibold">Aktueller Name</span>' : ''}
+                                        ${isFirst ? '<span class="inline-block mt-2 px-3 py-1 bg-blue-600/20 text-blue-400 rounded-full text-xs font-semibold">Originalname</span>' : ''}
                                     </div>
-                                    ${isCurrent ? '<span class="inline-block mt-2 px-3 py-1 bg-green-600/20 text-green-400 rounded-full text-xs font-semibold">Aktueller Name</span>' : ''}
-                                    ${isFirst ? '<span class="inline-block mt-2 px-3 py-1 bg-blue-600/20 text-blue-400 rounded-full text-xs font-semibold">Originalname</span>' : ''}
                                 </div>
-                            </div>
-                        `;
-                    }).reverse().join('');
+                            `;
+                        }).reverse().join('');
 
-                    document.getElementById('nameHistory').innerHTML = historyHTML;
-                } else {
-                    // Fallback wenn keine Historie vorhanden
+                        document.getElementById('nameHistory').innerHTML = historyHTML;
+                    } else {
+                        throw new Error('No history');
+                    }
+                } catch (historyErr) {
+                    // Fallback: Nur aktueller Name
+                    document.getElementById('nameChanges').textContent = '0';
                     document.getElementById('nameHistory').innerHTML = `
                         <div class="timeline-item pb-6">
                             <div class="bg-gray-800/50 rounded-xl p-4 border border-gray-700">
@@ -299,10 +327,27 @@
                                     <span class="font-bold text-lg">${data.username}</span>
                                     <span class="text-gray-400 text-sm">Aktueller Name</span>
                                 </div>
+                                <span class="inline-block mt-2 px-3 py-1 bg-green-600/20 text-green-400 rounded-full text-xs font-semibold">Aktueller Name</span>
                                 <span class="inline-block mt-2 px-3 py-1 bg-blue-600/20 text-blue-400 rounded-full text-xs font-semibold">Originalname</span>
                             </div>
                         </div>
                     `;
+                }
+
+                // Berechne ungefähres Account-Erstellungsdatum aus UUID
+                try {
+                    const timestamp = parseInt(uuid.substring(0, 8), 16);
+                    const createdDate = new Date(timestamp * 1000);
+                    
+                    if (createdDate.getFullYear() >= 2010 && createdDate.getFullYear() <= 2025) {
+                        document.getElementById('accountCreated').textContent = createdDate.toLocaleDateString('de-DE', {
+                            year: 'numeric', month: 'long', day: 'numeric'
+                        });
+                    } else {
+                        document.getElementById('accountCreated').textContent = 'Vor 2015 (geschätzt)';
+                    }
+                } catch (dateErr) {
+                    document.getElementById('accountCreated').textContent = 'Nicht verfügbar';
                 }
 
                 loading.classList.add('hidden');
@@ -313,6 +358,11 @@
                 loading.classList.add('hidden');
                 error.classList.remove('hidden');
             }
+        }
+
+        function formatUUID(uuid) {
+            if (uuid.includes('-')) return uuid;
+            return uuid.replace(/(.{8})(.{4})(.{4})(.{4})(.{12})/, '$1-$2-$3-$4-$5');
         }
 
         function copyUUID() {
