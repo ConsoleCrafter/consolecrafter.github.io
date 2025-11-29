@@ -275,51 +275,80 @@
                 document.getElementById('skinBack').src = `https://mc-heads.net/body/${uuid}/256/left`;
                 document.getElementById('skinDownload').href = `https://mc-heads.net/download/${uuid}`;
 
-                // Versuche Namenshistorie von Electroid API zu holen
+                // Versuche erweiterte Daten von MCProfile API zu holen
+                let nameHistoryData = null;
+                let createdAt = null;
+                
                 try {
-                    const nameHistoryRes = await fetch(`https://api.electroid.net/history/${uuid}`);
-                    const nameHistoryData = await nameHistoryRes.json();
+                    const mcprofileRes = await fetch(`https://mcprofile.io/api/uuid/${uuid}`);
+                    const mcprofileData = await mcprofileRes.json();
                     
-                    if (Array.isArray(nameHistoryData) && nameHistoryData.length > 0) {
-                        document.getElementById('nameChanges').textContent = Math.max(0, nameHistoryData.length - 1).toString();
-                        
-                        const historyHTML = nameHistoryData.map((entry, index) => {
-                            const isFirst = index === 0;
-                            const isCurrent = index === nameHistoryData.length - 1;
-                            
-                            let dateText = '';
-                            if (entry.changedToAt) {
-                                const date = new Date(entry.changedToAt);
-                                dateText = date.toLocaleDateString('de-DE', {
-                                    year: 'numeric', month: 'long', day: 'numeric'
-                                });
-                            } else if (isFirst) {
-                                dateText = 'Originalname';
-                            } else {
-                                dateText = 'Unbekannt';
-                            }
-                            
-                            return `
-                                <div class="timeline-item pb-6">
-                                    <div class="bg-gray-800/50 rounded-xl p-4 border border-gray-700">
-                                        <div class="flex items-center justify-between flex-wrap gap-2">
-                                            <span class="font-bold text-lg">${entry.name}</span>
-                                            <span class="text-gray-400 text-sm">${dateText}</span>
-                                        </div>
-                                        ${isCurrent ? '<span class="inline-block mt-2 px-3 py-1 bg-green-600/20 text-green-400 rounded-full text-xs font-semibold">Aktueller Name</span>' : ''}
-                                        ${isFirst ? '<span class="inline-block mt-2 px-3 py-1 bg-blue-600/20 text-blue-400 rounded-full text-xs font-semibold">Originalname</span>' : ''}
-                                    </div>
-                                </div>
-                            `;
-                        }).reverse().join('');
-
-                        document.getElementById('nameHistory').innerHTML = historyHTML;
-                    } else {
-                        throw new Error('No history');
+                    if (mcprofileData && mcprofileData.name_history) {
+                        nameHistoryData = mcprofileData.name_history;
+                        createdAt = mcprofileData.created_at;
                     }
-                } catch (historyErr) {
+                } catch (e) {
+                    console.log('MCProfile API failed, trying Laby.net...');
+                }
+
+                // Fallback: Versuche Laby.net API
+                if (!nameHistoryData) {
+                    try {
+                        const labyRes = await fetch(`https://laby.net/api/v3/user/${uuid}/profile`);
+                        const labyData = await labyRes.json();
+                        
+                        if (labyData && labyData.username_history) {
+                            nameHistoryData = labyData.username_history.map(entry => ({
+                                name: entry.username,
+                                changedToAt: entry.changed_at ? new Date(entry.changed_at).getTime() : null
+                            }));
+                        }
+                    } catch (e) {
+                        console.log('Laby.net API failed');
+                    }
+                }
+
+                // Zeige Namenshistorie an
+                if (nameHistoryData && Array.isArray(nameHistoryData) && nameHistoryData.length > 0) {
+                    document.getElementById('nameChanges').textContent = Math.max(0, nameHistoryData.length - 1).toString();
+                    
+                    const historyHTML = nameHistoryData.map((entry, index) => {
+                        const isFirst = index === 0;
+                        const isCurrent = index === nameHistoryData.length - 1;
+                        
+                        let dateText = '';
+                        if (entry.changedToAt || entry.changed_at) {
+                            const timestamp = entry.changedToAt || entry.changed_at;
+                            const date = new Date(timestamp);
+                            dateText = date.toLocaleDateString('de-DE', {
+                                year: 'numeric', month: 'long', day: 'numeric'
+                            });
+                        } else if (isFirst) {
+                            dateText = 'Originalname';
+                        } else {
+                            dateText = 'Unbekannt';
+                        }
+                        
+                        const name = entry.name || entry.username;
+                        
+                        return `
+                            <div class="timeline-item pb-6">
+                                <div class="bg-gray-800/50 rounded-xl p-4 border border-gray-700">
+                                    <div class="flex items-center justify-between flex-wrap gap-2">
+                                        <span class="font-bold text-lg">${name}</span>
+                                        <span class="text-gray-400 text-sm">${dateText}</span>
+                                    </div>
+                                    ${isCurrent ? '<span class="inline-block mt-2 px-3 py-1 bg-green-600/20 text-green-400 rounded-full text-xs font-semibold">Aktueller Name</span>' : ''}
+                                    ${isFirst ? '<span class="inline-block mt-2 px-3 py-1 bg-blue-600/20 text-blue-400 rounded-full text-xs font-semibold">Originalname</span>' : ''}
+                                </div>
+                            </div>
+                        `;
+                    }).reverse().join('');
+
+                    document.getElementById('nameHistory').innerHTML = historyHTML;
+                } else {
                     // Fallback: Nur aktueller Name
-                    document.getElementById('nameChanges').textContent = '0';
+                    document.getElementById('nameChanges').textContent = 'Nicht verfügbar';
                     document.getElementById('nameHistory').innerHTML = `
                         <div class="timeline-item pb-6">
                             <div class="bg-gray-800/50 rounded-xl p-4 border border-gray-700">
@@ -328,25 +357,21 @@
                                     <span class="text-gray-400 text-sm">Aktueller Name</span>
                                 </div>
                                 <span class="inline-block mt-2 px-3 py-1 bg-green-600/20 text-green-400 rounded-full text-xs font-semibold">Aktueller Name</span>
-                                <span class="inline-block mt-2 px-3 py-1 bg-blue-600/20 text-blue-400 rounded-full text-xs font-semibold">Originalname</span>
                             </div>
+                        </div>
+                        <div class="mt-4 p-4 bg-yellow-900/20 border border-yellow-700/50 rounded-lg text-yellow-200 text-sm">
+                            <p>ℹ️ Namenshistorie kann nicht abgerufen werden. Mojang hat diese API-Funktion 2022 entfernt.</p>
                         </div>
                     `;
                 }
 
-                // Berechne ungefähres Account-Erstellungsdatum aus UUID
-                try {
-                    const timestamp = parseInt(uuid.substring(0, 8), 16);
-                    const createdDate = new Date(timestamp * 1000);
-                    
-                    if (createdDate.getFullYear() >= 2010 && createdDate.getFullYear() <= 2025) {
-                        document.getElementById('accountCreated').textContent = createdDate.toLocaleDateString('de-DE', {
-                            year: 'numeric', month: 'long', day: 'numeric'
-                        });
-                    } else {
-                        document.getElementById('accountCreated').textContent = 'Vor 2015 (geschätzt)';
-                    }
-                } catch (dateErr) {
+                // Account-Erstellungsdatum
+                if (createdAt) {
+                    const createdDate = new Date(createdAt);
+                    document.getElementById('accountCreated').textContent = createdDate.toLocaleDateString('de-DE', {
+                        year: 'numeric', month: 'long', day: 'numeric'
+                    });
+                } else {
                     document.getElementById('accountCreated').textContent = 'Nicht verfügbar';
                 }
 
