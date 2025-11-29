@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minecraft Name Lookup | name.blockbuild.eu</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        
+        .skin-viewer {
+            transition: transform 0.3s ease;
+            image-rendering: pixelated;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
+        }
+        
+        .skin-viewer:hover {
+            transform: scale(1.05);
+        }
+        
+        .copy-feedback {
+            animation: slideIn 0.4s ease;
+        }
+        
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .timeline-item {
+            position: relative;
+            padding-left: 2rem;
+        }
+        
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0.5rem;
+            width: 0.75rem;
+            height: 0.75rem;
+            background: #3b82f6;
+            border-radius: 50%;
+            border: 2px solid #1e293b;
+        }
+        
+        .timeline-item:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            left: 0.3125rem;
+            top: 1.25rem;
+            width: 2px;
+            height: calc(100% - 0.75rem);
+            background: #374151;
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gray-950 text-gray-100">
+    <nav class="border-b border-gray-800 bg-gray-950/70 backdrop-blur-lg sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+            <a href="http://blockbuild.eu" class="text-xl font-bold text-white hover:opacity-80 transition-opacity">
+                BlockBuild.eu
+            </a>
+            <a href="http://blockbuild.eu" class="text-sm text-gray-400 hover:text-white transition-colors">
+                ← Zurück zur Hauptseite
+            </a>
+        </div>
+    </nav>
+
+    <main class="max-w-6xl mx-auto px-6 py-16">
+        <div class="text-center mb-12">
+            <h1 class="text-5xl font-bold mb-4">Minecraft Name Lookup</h1>
+            <p class="text-gray-400 text-lg">Finde Informationen über jeden Minecraft Spieler</p>
+        </div>
+
+        <div class="bg-gray-900 rounded-2xl border border-gray-800 p-8 shadow-2xl mb-8">
+            <div class="flex gap-4 mb-8">
+                <input 
+                    type="text" 
+                    id="username" 
+                    placeholder="z. B. Notch, Dream, Technoblade..." 
+                    class="flex-1 px-5 py-4 bg-gray-800 border border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-lg"
+                    maxlength="16"
+                >
+                <button 
+                    onclick="lookupPlayer()" 
+                    class="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors flex items-center gap-3 shadow-lg"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                    Suchen
+                </button>
+            </div>
+
+            <div id="loading" class="hidden text-center py-12">
+                <div class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
+                <p class="mt-4 text-gray-400">Lade Spielerdaten...</p>
+            </div>
+
+            <div id="error" class="hidden text-center py-12 text-red-400">
+                <svg xmlns="http://www.w3.org/2000/svg" class="mx-auto h-16 w-16 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <p class="text-xl font-semibold">Spieler nicht gefunden</p>
+                <p class="text-gray-400 mt-2">Überprüfe den Namen und versuche es erneut</p>
+            </div>
+        </div>
+
+        <div id="result" class="hidden space-y-6">
+            <!-- Player Info Card -->
+            <div class="bg-gray-900 rounded-2xl border border-gray-800 p-8 shadow-xl">
+                <div class="flex flex-col md:flex-row gap-8 items-center md:items-start">
+                    <div class="flex-shrink-0">
+                        <img 
+                            id="playerHead" 
+                            src="" 
+                            alt="Skin" 
+                            class="w-32 h-32 rounded-xl shadow-2xl border-4 border-gray-800 skin-viewer"
+                        >
+                    </div>
+                    
+                    <div class="flex-1 text-center md:text-left">
+                        <h2 id="playerName" class="text-4xl font-bold mb-2"></h2>
+                        <p class="text-gray-400 mb-4">
+                            <span class="font-mono text-sm" id="playerUUID"></span>
+                        </p>
+                        
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div class="bg-gray-800/50 rounded-xl p-4 border border-gray-700">
+                                <p class="text-gray-400 text-sm mb-1">Account erstellt</p>
+                                <p id="accountCreated" class="font-semibold text-lg"></p>
+                            </div>
+                            <div class="bg-gray-800/50 rounded-xl p-4 border border-gray-700">
+                                <p class="text-gray-400 text-sm mb-1">Namenänderungen</p>
+                                <p id="nameChanges" class="font-semibold text-lg"></p>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 flex flex-wrap gap-3 justify-center md:justify-start">
+                            <button onclick="copyUUID()" class="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors text-sm flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                </svg>
+                                UUID kopieren
+                            </button>
+                            <a id="namemc" href="" target="_blank" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors text-sm flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                    <polyline points="15 3 21 3 21 9"></polyline>
+                                    <line x1="10" y1="14" x2="21" y2="3"></line>
+                                </svg>
+                                NameMC öffnen
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Skin History -->
+            <div class="bg-gray-900 rounded-2xl border border-gray-800 p-8 shadow-xl">
+                <h3 class="text-2xl font-bold mb-6 flex items-center gap-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                        <polyline points="21 15 16 10 5 21"></polyline>
+                    </svg>
+                    Aktueller Skin
+                </h3>
+                <div class="flex justify-center gap-8 flex-wrap">
+                    <div class="text-center">
+                        <p class="text-gray-400 text-sm mb-3">Vorderansicht</p>
+                        <img id="skinFront" src="" alt="Skin Front" class="w-48 h-96 bg-gray-800 rounded-lg shadow-lg border border-gray-700 skin-viewer">
+                    </div>
+                    <div class="text-center">
+                        <p class="text-gray-400 text-sm mb-3">Rückansicht</p>
+                        <img id="skinBack" src="" alt="Skin Back" class="w-48 h-96 bg-gray-800 rounded-lg shadow-lg border border-gray-700 skin-viewer">
+                    </div>
+                </div>
+                <div class="text-center mt-6">
+                    <a id="skinDownload" href="" download class="inline-flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 rounded-lg transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                        Skin herunterladen
+                    </a>
+                </div>
+            </div>
+
+            <!-- Name History -->
+            <div class="bg-gray-900 rounded-2xl border border-gray-800 p-8 shadow-xl">
+                <h3 class="text-2xl font-bold mb-6 flex items-center gap-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    Namenshistorie
+                </h3>
+                <div id="nameHistory" class="space-y-4"></div>
+            </div>
+        </div>
+
+        <div id="copyFeedback" class="hidden fixed bottom-8 right-8 bg-green-900/90 border border-green-700 text-green-200 px-6 py-4 rounded-xl shadow-2xl copy-feedback backdrop-blur-sm">
+            ✅ UUID kopiert!
+        </div>
+    </main>
+
+    <footer class="mt-20 py-8 border-t border-gray-800">
+        <div class="max-w-7xl mx-auto px-6 text-center text-gray-500 text-sm">
+            © 2025 BlockBuild.eu – <a href="http://name.blockbuild.eu" class="hover:text-white">name.blockbuild.eu</a>
+        </div>
+    </footer>
+
+    <script>
+        let currentUUID = '';
+
+        async function lookupPlayer() {
+            const username = document.getElementById('username').value.trim();
+            const result = document.getElementById('result');
+            const loading = document.getElementById('loading');
+            const error = document.getElementById('error');
+
+            if (!username) return;
+
+            result.classList.add('hidden');
+            error.classList.add('hidden');
+            loading.classList.remove('hidden');
+
+            try {
+                const uuidRes = await fetch(`https://api.mojang.com/users/profiles/minecraft/${username}`);
+                
+                if (!uuidRes.ok) {
+                    throw new Error('Player not found');
+                }
+
+                const uuidData = await uuidRes.json();
+                currentUUID = uuidData.id;
+                const formattedUUID = formatUUID(currentUUID);
+
+                document.getElementById('playerName').textContent = uuidData.name;
+                document.getElementById('playerUUID').textContent = formattedUUID;
+                
+                document.getElementById('playerHead').src = `https://crafatar.com/avatars/${currentUUID}?size=128&overlay`;
+                document.getElementById('skinFront').src = `https://crafatar.com/renders/body/${currentUUID}?size=256&overlay`;
+                document.getElementById('skinBack').src = `https://crafatar.com/renders/body/${currentUUID}?size=256&overlay&default=MHF_Steve`;
+                document.getElementById('skinDownload').href = `https://crafatar.com/skins/${currentUUID}`;
+                document.getElementById('namemc').href = `https://namemc.com/profile/${uuidData.name}`;
+
+                const timestamp = extractTimestamp(currentUUID);
+                const createdDate = new Date(timestamp);
+                document.getElementById('accountCreated').textContent = createdDate.toLocaleDateString('de-DE', {
+                    year: 'numeric', month: 'long', day: 'numeric'
+                });
+
+                const nameHistoryRes = await fetch(`https://api.mojang.com/user/profiles/${currentUUID}/names`);
+                const nameHistory = await nameHistoryRes.json();
+                
+                document.getElementById('nameChanges').textContent = (nameHistory.length - 1).toString();
+
+                const historyHTML = nameHistory.reverse().map((entry, index) => {
+                    const isFirst = index === nameHistory.length - 1;
+                    const date = entry.changedToAt ? new Date(entry.changedToAt).toLocaleDateString('de-DE', {
+                        year: 'numeric', month: 'long', day: 'numeric'
+                    }) : 'Originalname';
+                    
+                    return `
+                        <div class="timeline-item pb-6">
+                            <div class="bg-gray-800/50 rounded-xl p-4 border border-gray-700">
+                                <div class="flex items-center justify-between flex-wrap gap-2">
+                                    <span class="font-bold text-lg">${entry.name}</span>
+                                    <span class="text-gray-400 text-sm">${date}</span>
+                                </div>
+                                ${isFirst ? '<span class="inline-block mt-2 px-3 py-1 bg-blue-600/20 text-blue-400 rounded-full text-xs font-semibold">Originalname</span>' : ''}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                document.getElementById('nameHistory').innerHTML = historyHTML;
+
+                loading.classList.add('hidden');
+                result.classList.remove('hidden');
+
+            } catch (err) {
+                console.error('Error:', err);
+                loading.classList.add('hidden');
+                error.classList.remove('hidden');
+            }
+        }
+
+        function formatUUID(uuid) {
+            return uuid.replace(/(.{8})(.{4})(.{4})(.{4})(.{12})/, '$1-$2-$3-$4-$5');
+        }
+
+        function extractTimestamp(uuid) {
+            const timeLow = parseInt(uuid.substring(0, 8), 16);
+            const timeMid = parseInt(uuid.substring(8, 12), 16);
+            const timeHiAndVersion = parseInt(uuid.substring(12, 16), 16);
+            
+            const time = (timeHiAndVersion & 0x0FFF) * Math.pow(2, 48) + 
+                         timeMid * Math.pow(2, 32) + 
+                         timeLow;
+            
+            const timestamp = (time - 0x01b21dd213814000) / 10000;
+            return timestamp;
+        }
+
+        function copyUUID() {
+            const formatted = formatUUID(currentUUID);
+            navigator.clipboard.writeText(formatted).then(() => {
+                const feedback = document.getElementById('copyFeedback');
+                feedback.classList.remove('hidden');
+                setTimeout(() => feedback.classList.add('hidden'), 3000);
+            });
+        }
+
+        document.getElementById('username').addEventListener('keypress', e => {
+            if (e.key === 'Enter') lookupPlayer();
+        });
+    </script>
+</body>
+</html>
