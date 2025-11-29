@@ -232,56 +232,103 @@
             loading.classList.remove('hidden');
 
             try {
-                const uuidRes = await fetch(`https://api.mojang.com/users/profiles/minecraft/${username}`);
+                // Verwende PlayerDB API (CORS-freundlich)
+                const playerRes = await fetch(`https://playerdb.co/api/player/minecraft/${username}`);
                 
-                if (!uuidRes.ok) {
+                if (!playerRes.ok) {
                     throw new Error('Player not found');
                 }
 
-                const uuidData = await uuidRes.json();
-                currentUUID = uuidData.id;
-                const formattedUUID = formatUUID(currentUUID);
+                const playerData = await playerRes.json();
+                
+                if (!playerData.success || !playerData.data) {
+                    throw new Error('Player not found');
+                }
 
-                document.getElementById('playerName').textContent = uuidData.name;
+                const player = playerData.data.player;
+                currentUUID = player.raw_id || player.id.replace(/-/g, '');
+                const formattedUUID = player.id;
+
+                document.getElementById('playerName').textContent = player.username;
                 document.getElementById('playerUUID').textContent = formattedUUID;
                 
-                document.getElementById('playerHead').src = `https://crafatar.com/avatars/${currentUUID}?size=128&overlay`;
-                document.getElementById('skinFront').src = `https://crafatar.com/renders/body/${currentUUID}?size=256&overlay`;
-                document.getElementById('skinBack').src = `https://crafatar.com/renders/body/${currentUUID}?size=256&overlay&default=MHF_Steve`;
-                document.getElementById('skinDownload').href = `https://crafatar.com/skins/${currentUUID}`;
-                document.getElementById('namemc').href = `https://namemc.com/profile/${uuidData.name}`;
+                // Verwende Crafatar für Skins (funktioniert mit UUID)
+                const cleanUUID = currentUUID;
+                document.getElementById('playerHead').src = `https://crafatar.com/avatars/${cleanUUID}?size=128&overlay`;
+                document.getElementById('skinFront').src = `https://crafatar.com/renders/body/${cleanUUID}?size=256&overlay`;
+                document.getElementById('skinBack').src = `https://crafatar.com/renders/body/${cleanUUID}?size=256&overlay&default=MHF_Steve`;
+                document.getElementById('skinDownload').href = `https://crafatar.com/skins/${cleanUUID}`;
+                document.getElementById('namemc').href = `https://namemc.com/profile/${player.username}`;
 
-                const timestamp = extractTimestamp(currentUUID);
-                const createdDate = new Date(timestamp);
-                document.getElementById('accountCreated').textContent = createdDate.toLocaleDateString('de-DE', {
-                    year: 'numeric', month: 'long', day: 'numeric'
-                });
-
-                const nameHistoryRes = await fetch(`https://api.mojang.com/user/profiles/${currentUUID}/names`);
-                const nameHistory = await nameHistoryRes.json();
-                
-                document.getElementById('nameChanges').textContent = (nameHistory.length - 1).toString();
-
-                const historyHTML = nameHistory.reverse().map((entry, index) => {
-                    const isFirst = index === nameHistory.length - 1;
-                    const date = entry.changedToAt ? new Date(entry.changedToAt).toLocaleDateString('de-DE', {
+                // Account-Erstellungsdatum aus PlayerDB
+                if (player.meta && player.meta.created_at) {
+                    const createdDate = new Date(player.meta.created_at);
+                    document.getElementById('accountCreated').textContent = createdDate.toLocaleDateString('de-DE', {
                         year: 'numeric', month: 'long', day: 'numeric'
-                    }) : 'Originalname';
-                    
-                    return `
+                    });
+                } else {
+                    document.getElementById('accountCreated').textContent = 'Nicht verfügbar';
+                }
+
+                // Versuche Namenshistorie von Ashcon API zu holen
+                try {
+                    const ashconRes = await fetch(`https://api.ashcon.app/mojang/v2/user/${username}`);
+                    if (ashconRes.ok) {
+                        const ashconData = await ashconRes.json();
+                        const nameHistory = ashconData.username_history || [{ username: player.username }];
+                        
+                        document.getElementById('nameChanges').textContent = Math.max(0, nameHistory.length - 1).toString();
+
+                        const historyHTML = nameHistory.reverse().map((entry, index) => {
+                            const isFirst = index === nameHistory.length - 1;
+                            const date = entry.changed_at ? new Date(entry.changed_at).toLocaleDateString('de-DE', {
+                                year: 'numeric', month: 'long', day: 'numeric'
+                            }) : 'Originalname';
+                            
+                            return `
+                                <div class="timeline-item pb-6">
+                                    <div class="bg-gray-800/50 rounded-xl p-4 border border-gray-700">
+                                        <div class="flex items-center justify-between flex-wrap gap-2">
+                                            <span class="font-bold text-lg">${entry.username}</span>
+                                            <span class="text-gray-400 text-sm">${date}</span>
+                                        </div>
+                                        ${isFirst ? '<span class="inline-block mt-2 px-3 py-1 bg-blue-600/20 text-blue-400 rounded-full text-xs font-semibold">Originalname</span>' : ''}
+                                    </div>
+                                </div>
+                            `;
+                        }).join('');
+
+                        document.getElementById('nameHistory').innerHTML = historyHTML;
+                    } else {
+                        // Fallback: Nur aktueller Name
+                        document.getElementById('nameChanges').textContent = '0';
+                        document.getElementById('nameHistory').innerHTML = `
+                            <div class="timeline-item pb-6">
+                                <div class="bg-gray-800/50 rounded-xl p-4 border border-gray-700">
+                                    <div class="flex items-center justify-between flex-wrap gap-2">
+                                        <span class="font-bold text-lg">${player.username}</span>
+                                        <span class="text-gray-400 text-sm">Aktueller Name</span>
+                                    </div>
+                                    <span class="inline-block mt-2 px-3 py-1 bg-blue-600/20 text-blue-400 rounded-full text-xs font-semibold">Originalname</span>
+                                </div>
+                            </div>
+                        `;
+                    }
+                } catch (nameErr) {
+                    // Fallback wenn Namenshistorie nicht verfügbar
+                    document.getElementById('nameChanges').textContent = '0';
+                    document.getElementById('nameHistory').innerHTML = `
                         <div class="timeline-item pb-6">
                             <div class="bg-gray-800/50 rounded-xl p-4 border border-gray-700">
                                 <div class="flex items-center justify-between flex-wrap gap-2">
-                                    <span class="font-bold text-lg">${entry.name}</span>
-                                    <span class="text-gray-400 text-sm">${date}</span>
+                                    <span class="font-bold text-lg">${player.username}</span>
+                                    <span class="text-gray-400 text-sm">Aktueller Name</span>
                                 </div>
-                                ${isFirst ? '<span class="inline-block mt-2 px-3 py-1 bg-blue-600/20 text-blue-400 rounded-full text-xs font-semibold">Originalname</span>' : ''}
+                                <span class="inline-block mt-2 px-3 py-1 bg-blue-600/20 text-blue-400 rounded-full text-xs font-semibold">Originalname</span>
                             </div>
                         </div>
                     `;
-                }).join('');
-
-                document.getElementById('nameHistory').innerHTML = historyHTML;
+                }
 
                 loading.classList.add('hidden');
                 result.classList.remove('hidden');
