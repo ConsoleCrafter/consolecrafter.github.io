@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Christmas Countdown | BlockBuild.eu</title>
+    <title>Ultimate Countdown | BlockBuild.eu</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
@@ -14,125 +14,179 @@
         }
         
         .glass-card {
-            background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(34, 197, 94, 0.1));
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: transform 0.2s ease, border-color 0.2s ease;
         }
 
-        .countdown-number {
-            background: linear-gradient(135deg, #ef4444, #22c55e);
+        .glass-card:hover {
+            border-color: rgba(59, 130, 246, 0.5);
+            transform: translateY(-2px);
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            font-weight: 800;
         }
 
-        @keyframes fall {
-            0% { transform: translateY(-10vh) translateX(0); }
-            100% { transform: translateY(110vh) translateX(20px); }
-        }
-
-        .snow-particle {
-            position: fixed;
-            background: white;
-            border-radius: 50%;
-            pointer-events: none;
-            opacity: 0.6;
-            z-index: 1;
-            animation: fall linear infinite;
+        .event-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
         }
     </style>
 </head>
-<body class="min-h-screen text-gray-100 overflow-hidden">
+<body class="min-h-screen text-gray-100 pb-20">
     
     <nav class="border-b border-gray-800 bg-gray-950/70 backdrop-blur-lg sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-            <a href="http://blockbuild.eu" class="text-xl font-bold text-white hover:opacity-80 transition-opacity">
-                BlockBuild.eu
-            </a>
-            <div class="text-sm text-red-400 font-semibold animate-pulse">
-                🎄 Christmas Special
-            </div>
+            <a href="http://blockbuild.eu" class="text-xl font-bold text-white">BlockBuild.eu</a>
+            <div class="text-blue-400 font-mono text-sm" id="liveClock">00:00:00</div>
         </div>
     </nav>
 
-    <main class="relative z-10 max-w-4xl mx-auto px-6 py-20 flex flex-col items-center justify-center min-h-[calc(100vh-64px)]">
-        <div class="text-center mb-12">
-            <h1 class="text-6xl font-extrabold mb-4 tracking-tight">
-                <span class="text-white">Christmas</span> 
-                <span class="text-red-500">Countdown</span>
-            </h1>
-            <p class="text-gray-400 text-lg">Zeit bis zur Bescherung</p>
-        </div>
+    <main class="max-w-7xl mx-auto px-6 pt-12">
+        <section class="mb-16">
+            <h2 class="text-3xl font-bold mb-8 flex items-center gap-3">
+                <span class="p-2 bg-blue-600/20 rounded-lg text-blue-400">🕒</span>
+                Live Zeit-Einheiten
+            </h2>
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+                <div class="glass-card rounded-2xl p-6 text-center">
+                    <div id="nextMin" class="text-3xl font-bold gradient-text">00s</div>
+                    <div class="text-gray-500 text-xs mt-1 uppercase tracking-widest">Nächste Min.</div>
+                </div>
+                <div class="glass-card rounded-2xl p-6 text-center">
+                    <div id="nextHour" class="text-3xl font-bold gradient-text">00m</div>
+                    <div class="text-gray-500 text-xs mt-1 uppercase tracking-widest">Nächste Std.</div>
+                </div>
+                <div class="glass-card rounded-2xl p-6 text-center">
+                    <div id="nextDay" class="text-3xl font-bold gradient-text">00h</div>
+                    <div class="text-gray-500 text-xs mt-1 uppercase tracking-widest">Nächster Tag</div>
+                </div>
+                <div class="glass-card rounded-2xl p-6 text-center">
+                    <div id="nextMonth" class="text-3xl font-bold gradient-text">00d</div>
+                    <div class="text-gray-500 text-xs mt-1 uppercase tracking-widest">Nächster Mon.</div>
+                </div>
+                <div class="glass-card rounded-2xl p-6 text-center">
+                    <div id="nextYear" class="text-3xl font-bold gradient-text">00d</div>
+                    <div class="text-gray-500 text-xs mt-1 uppercase tracking-widest">Nächstes Jahr</div>
+                </div>
+            </div>
+        </section>
 
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-6 w-full">
-            <div class="glass-card rounded-3xl p-8 text-center">
-                <div id="days" class="countdown-number text-5xl mb-2">00</div>
-                <div class="text-gray-500 uppercase text-xs font-bold tracking-widest">Tage</div>
-            </div>
-            <div class="glass-card rounded-3xl p-8 text-center">
-                <div id="hours" class="countdown-number text-5xl mb-2">00</div>
-                <div class="text-gray-500 uppercase text-xs font-bold tracking-widest">Stunden</div>
-            </div>
-            <div class="glass-card rounded-3xl p-8 text-center">
-                <div id="minutes" class="countdown-number text-5xl mb-2">00</div>
-                <div class="text-gray-500 uppercase text-xs font-bold tracking-widest">Minuten</div>
-            </div>
-            <div class="glass-card rounded-3xl p-8 text-center">
-                <div id="seconds" class="countdown-number text-5xl mb-2">00</div>
-                <div class="text-gray-500 uppercase text-xs font-bold tracking-widest">Sekunden</div>
-            </div>
-        </div>
-
-        <div class="mt-16 text-center">
-            <div class="inline-block bg-white/5 border border-white/10 px-6 py-3 rounded-full text-gray-400">
-                Status: <span class="text-green-400">Frohe Festtage! 🎅</span>
-            </div>
-        </div>
+        <section>
+            <h2 class="text-3xl font-bold mb-8 flex items-center gap-3">
+                <span class="p-2 bg-red-600/20 rounded-lg text-red-400">📅</span>
+                Event Countdown
+            </h2>
+            <div class="event-grid" id="eventsContainer">
+                </div>
+        </section>
     </main>
 
     <script>
-        function updateCountdown() {
+        const events = [
+            { name: "Valentinstag", month: 1, day: 14, icon: "💖" },
+            { name: "Ostern", date: getEaster(2025), icon: "🐰" },
+            { name: "Muttertag", date: getMothersDay(2025), icon: "💐" },
+            { name: "Vatertag", date: getFathersDay(2025), icon: "🍺" },
+            { name: "Halloween", month: 9, day: 31, icon: "🎃" },
+            { name: "Thanksgiving", date: getThanksgiving(2025), icon: "🦃" },
+            { name: "Weihnachten", month: 11, day: 24, icon: "🎄" }
+        ];
+
+        function getEaster(year) {
+            const f = Math.floor,
+                G = year % 19,
+                C = f(year / 100),
+                H = (C - f(C / 4) - f((8 * C + 13) / 25) + 19 * G + 15) % 30,
+                I = H - f(H / 28) * (1 - f(29 / (H + 1)) * f((21 - G) / 11)),
+                J = (year + f(year / 4) + I + 2 - C + f(C / 4)) % 7,
+                L = I - J,
+                month = 3 + f((L + 40) / 44),
+                day = L + 28 - 31 * f(month / 4);
+            return new Date(year, month - 1, day);
+        }
+
+        function getMothersDay(year) {
+            const may1 = new Date(year, 4, 1);
+            const firstSunday = 1 + (7 - may1.getDay()) % 7;
+            return new Date(year, 4, firstSunday + 7);
+        }
+
+        function getFathersDay(year) {
+            const easter = getEaster(year);
+            const ascension = new Date(easter);
+            ascension.setDate(easter.getDate() + 39);
+            return ascension;
+        }
+
+        function getThanksgiving(year) {
+            const nov1 = new Date(year, 10, 1);
+            const firstThursday = 1 + (4 - nov1.getDay() + 7) % 7;
+            return new Date(year, 10, firstThursday + 21);
+        }
+
+        function update() {
             const now = new Date();
-            const currentYear = now.getFullYear();
-            let christmas = new Date(currentYear, 11, 24);
+            
+            // Live Clock
+            document.getElementById('liveClock').innerText = now.toLocaleTimeString();
 
-            if (now > christmas) {
-                christmas = new Date(currentYear + 1, 11, 24);
-            }
+            // Next Units
+            const sLeft = 60 - now.getSeconds();
+            const mLeft = 60 - now.getMinutes();
+            const hLeft = 24 - now.getHours();
+            
+            const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+            const daysToMonth = Math.ceil((nextMonth - now) / (1000 * 60 * 60 * 24));
+            
+            const nextYear = new Date(now.getFullYear() + 1, 0, 1);
+            const daysToYear = Math.ceil((nextYear - now) / (1000 * 60 * 60 * 24));
 
-            const diff = christmas - now;
+            document.getElementById('nextMin').innerText = sLeft + "s";
+            document.getElementById('nextHour').innerText = mLeft + "m";
+            document.getElementById('nextDay').innerText = hLeft + "h";
+            document.getElementById('nextMonth').innerText = daysToMonth + "d";
+            document.getElementById('nextYear').innerText = daysToYear + "d";
 
-            const d = Math.floor(diff / (1000 * 60 * 60 * 24));
-            const h = Math.floor((diff / (1000 * 60 * 60)) % 24);
-            const m = Math.floor((diff / 1000 / 60) % 60);
-            const s = Math.floor((diff / 1000) % 60);
+            // Events
+            const container = document.getElementById('eventsContainer');
+            container.innerHTML = '';
 
-            document.getElementById('days').innerText = d.toString().padStart(2, '0');
-            document.getElementById('hours').innerText = h.toString().padStart(2, '0');
-            document.getElementById('minutes').innerText = m.toString().padStart(2, '0');
-            document.getElementById('seconds').innerText = s.toString().padStart(2, '0');
+            events.forEach(ev => {
+                let target;
+                if(ev.date) {
+                    target = ev.date;
+                } else {
+                    target = new Date(now.getFullYear(), ev.month, ev.day);
+                }
+                
+                if (now > target) target.setFullYear(target.getFullYear() + 1);
+
+                const diff = target - now;
+                const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+                const h = Math.floor((diff / (1000 * 60 * 60)) % 24);
+
+                const card = document.createElement('div');
+                card.className = 'glass-card rounded-2xl p-6';
+                card.innerHTML = `
+                    <div class="flex justify-between items-start mb-4">
+                        <span class="text-2xl">${ev.icon}</span>
+                        <span class="text-xs font-bold text-gray-500 uppercase">${target.toLocaleDateString()}</span>
+                    </div>
+                    <h3 class="text-xl font-bold mb-1">${ev.name}</h3>
+                    <div class="text-2xl font-mono text-blue-400">${d}d ${h}h</div>
+                `;
+                container.appendChild(card);
+            });
         }
 
-        function createSnow() {
-            const snowContainer = document.body;
-            for (let i = 0; i < 60; i++) {
-                const snow = document.createElement('div');
-                snow.className = 'snow-particle';
-                const size = Math.random() * 4 + 2 + 'px';
-                snow.style.width = size;
-                snow.style.height = size;
-                snow.style.left = Math.random() * 100 + 'vw';
-                snow.style.top = Math.random() * 100 + 'vh';
-                snow.style.animationDuration = (Math.random() * 8 + 4) + 's';
-                snow.style.animationDelay = (Math.random() * 5) + 's';
-                snowContainer.appendChild(snow);
-            }
-        }
-
-        setInterval(updateCountdown, 1000);
-        updateCountdown();
-        createSnow();
+        setInterval(update, 1000);
+        update();
     </script>
 </body>
 </html>
