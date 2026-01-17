@@ -16,27 +16,24 @@
             font-family: 'JetBrains Mono', monospace;
             font-size: 1.25rem;
             line-height: 2;
-            word-wrap: break-word;
-            overflow-wrap: break-word;
-            white-space: pre-wrap;
+            word-break: keep-all;
+            overflow-wrap: normal;
+            white-space: normal;
         }
         
         .char-correct {
             color: #10b981;
             background-color: rgba(16, 185, 129, 0.1);
-            display: inline-block;
         }
         
         .char-incorrect {
             color: #ef4444;
             background-color: rgba(239, 68, 68, 0.2);
-            display: inline-block;
         }
         
         .char-current {
             background-color: rgba(59, 130, 246, 0.3);
             animation: pulse 1s infinite;
-            display: inline-block;
         }
         
         @keyframes pulse {
