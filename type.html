@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Typing Trainer | BlockBuild.eu</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+        
+        body { 
+            font-family: 'Inter', sans-serif; 
+        }
+        
+        .typing-text {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.25rem;
+            line-height: 2;
+        }
+        
+        .char-correct {
+            color: #10b981;
+            background-color: rgba(16, 185, 129, 0.1);
+        }
+        
+        .char-incorrect {
+            color: #ef4444;
+            background-color: rgba(239, 68, 68, 0.2);
+        }
+        
+        .char-current {
+            background-color: rgba(59, 130, 246, 0.3);
+            animation: pulse 1s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .stat-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: all 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            border-color: rgba(59, 130, 246, 0.5);
+            transform: translateY(-2px);
+        }
+        
+        .gradient-text {
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        #typingInput {
+            position: absolute;
+            left: -9999px;
+        }
+        
+        .category-btn {
+            transition: all 0.3s ease;
+        }
+        
+        .category-btn.active {
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            color: white;
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gray-950 text-gray-100">
+    <nav class="border-b border-gray-800 bg-gray-950/70 backdrop-blur-lg sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+            <a href="http://blockbuild.eu" class="text-xl font-bold text-white hover:opacity-80 transition-opacity">
+                BlockBuild.eu
+            </a>
+            <div class="flex items-center gap-4">
+                <div class="text-sm text-gray-400">
+                    <span id="liveTimer" class="font-mono text-blue-400">0:00</span>
+                </div>
+                <a href="http://blockbuild.eu" class="text-sm text-gray-400 hover:text-white transition-colors">
+                    ← Zurück
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-6 py-12">
+        <div class="text-center mb-12">
+            <h1 class="text-5xl font-bold mb-4">⌨️ Typing Trainer</h1>
+            <p class="text-gray-400 text-lg">Verbessere deine Tippgeschwindigkeit und Genauigkeit</p>
+        </div>
+
+        <!-- Statistik Cards -->
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+            <div class="stat-card rounded-2xl p-6 text-center">
+                <div id="statTime" class="text-3xl font-bold gradient-text">0:00</div>
+                <div class="text-gray-500 text-xs mt-1 uppercase tracking-widest">Zeit</div>
+            </div>
+            <div class="stat-card rounded-2xl p-6 text-center">
+                <div id="statChars" class="text-3xl font-bold gradient-text">0</div>
+                <div class="text-gray-500 text-xs mt-1 uppercase tracking-widest">Zeichen</div>
+            </div>
+            <div class="stat-card rounded-2xl p-6 text-center">
+                <div id="statCPM" class="text-3xl font-bold gradient-text">0</div>
+                <div class="text-gray-500 text-xs mt-1 uppercase tracking-widest">Zeichen/Min</div>
+            </div>
+            <div class="stat-card rounded-2xl p-6 text-center">
+                <div id="statErrors" class="text-3xl font-bold gradient-text">0</div>
+                <div class="text-gray-500 text-xs mt-1 uppercase tracking-widest">Fehler</div>
+            </div>
+            <div class="stat-card rounded-2xl p-6 text-center">
+                <div id="statAccuracy" class="text-3xl font-bold gradient-text">100%</div>
+                <div class="text-gray-500 text-xs mt-1 uppercase tracking-widest">Genauigkeit</div>
+            </div>
+        </div>
+
+        <!-- Kategorien -->
+        <div class="mb-8">
+            <h2 class="text-2xl font-bold mb-4 flex items-center gap-3">
+                <span class="p-2 bg-blue-600/20 rounded-lg text-blue-400">📚</span>
+                Textkategorien
+            </h2>
+            <div class="flex flex-wrap gap-3">
+                <button onclick="selectCategory('einfach')" class="category-btn active px-6 py-3 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors font-semibold">
+                    Einfache Texte
+                </button>
+                <button onclick="selectCategory('literatur')" class="category-btn px-6 py-3 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors font-semibold">
+                    Literatur
+                </button>
+                <button onclick="selectCategory('technik')" class="category-btn px-6 py-3 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors font-semibold">
+                    Technik & IT
+                </button>
+                <button onclick="selectCategory('geschaeft')" class="category-btn px-6 py-3 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors font-semibold">
+                    Geschäftsbriefe
+                </button>
+                <button onclick="selectCategory('din5008')" class="category-btn px-6 py-3 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors font-semibold">
+                    DIN 5008
+                </button>
+                <button onclick="selectCategory('zahlen')" class="category-btn px-6 py-3 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors font-semibold">
+                    Zahlen & Daten
+                </button>
+                <button onclick="selectCategory('sonderzeichen')" class="category-btn px-6 py-3 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors font-semibold">
+                    Sonderzeichen
+                </button>
+            </div>
+        </div>
+
+        <!-- Typing Bereich -->
+        <div class="bg-gray-900 rounded-2xl border border-gray-800 p-8 mb-8">
+            <div class="mb-6 flex justify-between items-center">
+                <h3 id="currentTextTitle" class="text-xl font-bold">Aktueller Text</h3>
+                <button onclick="resetTest()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
+                        <path d="M21 3v5h-5"></path>
+                        <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
+                        <path d="M3 21v-5h5"></path>
+                    </svg>
+                    Neuer Text
+                </button>
+            </div>
+            
+            <div id="textDisplay" class="typing-text bg-gray-800 rounded-xl p-6 mb-6 min-h-[200px] cursor-text select-none" onclick="focusInput()">
+                Klicke hier um zu starten...
+            </div>
+            
+            <input type="text" id="typingInput" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+            
+            <div id="startPrompt" class="text-center text-gray-400">
+                <p class="text-lg mb-2">👆 Klicke auf den Text oben um zu beginnen</p>
+                <p class="text-sm">Tipp: Tippe einfach los, der Timer startet automatisch!</p>
+            </div>
+        </div>
+
+        <!-- Ergebnisse -->
+        <div id="resultsSection" class="hidden bg-gray-900 rounded-2xl border border-gray-800 p-8">
+            <div class="text-center mb-8">
+                <h2 class="text-3xl font-bold mb-4">🎉 Test Abgeschlossen!</h2>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="bg-gray-800 rounded-xl p-6 text-center">
+                    <div class="text-5xl font-bold text-blue-400 mb-2" id="finalCPM">0</div>
+                    <div class="text-gray-400">Zeichen pro Minute</div>
+                </div>
+                <div class="bg-gray-800 rounded-xl p-6 text-center">
+                    <div class="text-5xl font-bold text-green-400 mb-2" id="finalAccuracy">100%</div>
+                    <div class="text-gray-400">Genauigkeit</div>
+                </div>
+                <div class="bg-gray-800 rounded-xl p-6 text-center">
+                    <div class="text-5xl font-bold text-purple-400 mb-2" id="finalTime">0:00</div>
+                    <div class="text-gray-400">Benötigte Zeit</div>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4 mb-8">
+                <div class="bg-gray-800 rounded-xl p-4">
+                    <div class="text-gray-400 text-sm mb-1">Zeichen gesamt</div>
+                    <div class="text-2xl font-bold" id="finalChars">0</div>
+                </div>
+                <div class="bg-gray-800 rounded-xl p-4">
+                    <div class="text-gray-400 text-sm mb-1">Fehler</div>
+                    <div class="text-2xl font-bold text-red-400" id="finalErrors">0</div>
+                </div>
+            </div>
+            
+            <div class="flex gap-4 justify-center">
+                <button onclick="resetTest()" class="px-8 py-4 bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors font-semibold">
+                    Nochmal üben
+                </button>
+                <button onclick="selectCategory(currentCategory, true)" class="px-8 py-4 bg-green-600 hover:bg-green-700 rounded-xl transition-colors font-semibold">
+                    Neuer Text
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <footer class="mt-16 py-8 border-t border-gray-800">
+        <div class="max-w-7xl mx-auto px-6 text-center text-gray-500 text-sm">
+            © 2025 BlockBuild.eu – <span class="text-gray-600">Werde zum Typing-Profi! ⌨️</span>
+        </div>
+    </footer>
+
+    <script>
+        const texts = {
+            einfach: [
+                "Der schnelle braune Fuchs springt über den faulen Hund. Dies ist ein klassischer Satz zum Üben.",
+                "Heute ist ein wunderschöner Tag. Die Sonne scheint hell am Himmel und die Vögel singen ihre Lieder.",
+                "Ich lerne jeden Tag etwas Neues. Übung macht den Meister und mit jedem Tastendruck werde ich besser.",
+                "Computer sind aus unserem Alltag nicht mehr wegzudenken. Sie helfen uns bei vielen Aufgaben.",
+                "Die Zeit vergeht schnell wenn man beschäftigt ist. Eine Stunde kann sich wie eine Minute anfühlen."
+            ],
+            literatur: [
+                "Es war einmal in einem fernen Königreich, wo ein junger Prinz auf der Suche nach Abenteuern war. Seine Reise führte ihn durch dunkle Wälder und über hohe Berge.",
+                "Der alte Mann saß auf der Bank und beobachtete die vorbeiziehenden Wolken. Jede einzelne erzählte ihm eine Geschichte aus vergangenen Zeiten.",
+                "In der Stille der Nacht hörte sie nur das sanfte Rauschen der Blätter im Wind. Es war ein Moment vollkommenen Friedens.",
+                "Die Bibliothek war sein Lieblingsort. Zwischen den Regalen voller Bücher fühlte er sich wie in einer anderen Welt, umgeben von unzähligen Geschichten und Abenteuern.",
+                "Als die ersten Sonnenstrahlen durch das Fenster fielen, erwachte die Stadt zum Leben. Die Straßen füllten sich mit Menschen, jeder auf dem Weg zu seinem eigenen Ziel."
+            ],
+            technik: [
+                "Die Programmiersprache Python ist bekannt für ihre einfache Syntax und Lesbarkeit. Sie wird häufig für Datenanalyse und maschinelles Lernen verwendet.",
+                "Cloud Computing hat die Art und Weise revolutioniert, wie Unternehmen ihre IT-Infrastruktur verwalten. Skalierbarkeit und Flexibilität sind dabei zentrale Vorteile.",
+                "Künstliche Intelligenz und maschinelles Lernen transformieren zahlreiche Industrien. Von selbstfahrenden Autos bis hin zu personalisierten Empfehlungen.",
+                "Cybersecurity ist heute wichtiger denn je. Mit zunehmender Digitalisierung steigen auch die Anforderungen an den Schutz sensibler Daten.",
+                "Die Blockchain-Technologie bietet neue Möglichkeiten für sichere und transparente Transaktionen. Dezentralisierung ist dabei ein Schlüsselkonzept."
+            ],
+            geschaeft: [
+                "Sehr geehrte Damen und Herren, wir bedanken uns für Ihr Interesse an unseren Produkten und Services. Gerne unterbreiten wir Ihnen ein unverbindliches Angebot.",
+                "Mit Bezug auf unser Telefonat vom gestrigen Tag möchten wir Ihnen folgende Informationen zukommen lassen. Bei Rückfragen stehen wir Ihnen gerne zur Verfügung.",
+                "Hiermit bestätigen wir den Eingang Ihrer Bestellung vom 15. Januar 2025. Die Lieferung erfolgt voraussichtlich innerhalb von fünf Werktagen.",
+                "Wir freuen uns, Ihnen mitteilen zu können, dass Ihre Bewerbung positiv aufgenommen wurde. Gerne möchten wir Sie zu einem persönlichen Gespräch einladen.",
+                "Für die gute Zusammenarbeit im vergangenen Jahr möchten wir uns herzlich bedanken. Wir freuen uns auf eine weitere erfolgreiche Zusammenarbeit."
+            ],
+            din5008: [
+                "Berlin, den 17. Januar 2025 - Sehr geehrte Frau Müller, bezugnehmend auf Ihr Schreiben vom 10.01.2025 teilen wir Ihnen Folgendes mit:",
+                "Betreff: Angebot Nr. 2025-0142 - Sehr geehrter Herr Schmidt, vielen Dank für Ihre Anfrage vom 12. Januar 2025. Gerne unterbreiten wir Ihnen folgendes Angebot:",
+                "Rechnung Nr. 2025/001 - Rechnungsdatum: 17.01.2025 - Leistungszeitraum: 01.01.2025 bis 31.01.2025 - Zahlungsziel: 14 Tage netto",
+                "Anschrift: Firma Mustermann GmbH, Musterstraße 123, 12345 Musterstadt - Telefon: +49 (0) 123 456789 - E-Mail: info@mustermann.de",
+                "Mit freundlichen Grüßen - Max Mustermann - Geschäftsführer - Anlage: Produktkatalog 2025"
+            ],
+            zahlen: [
+                "Die Rechnung beläuft sich auf 1.234,56 Euro. Die Mehrwertsteuer in Höhe von 19% beträgt 197,37 Euro.",
+                "Telefon: +49 (0) 30 12345678 - Mobil: +49 (0) 170 1234567 - Fax: +49 (0) 30 12345679",
+                "IBAN: DE89 3704 0044 0532 0130 00 - BIC: COBADEFFXXX - Kontonummer: 1234567890",
+                "Postleitzahlen: 10115 Berlin, 80331 München, 20095 Hamburg, 50667 Köln, 60311 Frankfurt",
+                "Datum: 17.01.2025 - Uhrzeit: 14:30 Uhr - Referenznummer: 2025-0142-AB"
+            ],
+            sonderzeichen: [
+                "E-Mail: info@blockbuild.eu - Website: https://www.blockbuild.eu - Hashtag: #BlockBuild2025",
+                "Mathematik: 5 + 3 = 8, 10 - 4 = 6, 7 * 8 = 56, 100 / 5 = 20, (2 + 3) * 4 = 20",
+                "Sonderzeichen: § & % $ € @ # ! ? * + - / = < > | ~ ^ ° \" ' ` ´",
+                "Klammern & Co: [Array], {Object}, (Gruppe), <HTML>, \"String\", 'Char'",
+                "Code: if (x > 5) { return true; } else { return false; } // Kommentar"
+            ]
+        };
+
+        let currentText = '';
+        let currentCategory = 'einfach';
+        let currentIndex = 0;
+        let startTime = null;
+        let timerInterval = null;
+        let errors = 0;
+        let totalCharsTyped = 0;
+        let isTestComplete = false;
+
+        const textDisplay = document.getElementById('textDisplay');
+        const typingInput = document.getElementById('typingInput');
+        const startPrompt = document.getElementById('startPrompt');
+        const resultsSection = document.getElementById('resultsSection');
+
+        function selectCategory(category, newText = false) {
+            currentCategory = category;
+            
+            document.querySelectorAll('.category-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            if (newText || currentText === '') {
+                loadNewText();
+            }
+        }
+
+        function loadNewText() {
+            const categoryTexts = texts[currentCategory];
+            currentText = categoryTexts[Math.floor(Math.random() * categoryTexts.length)];
+            resetTest();
+            displayText();
+        }
+
+        function displayText() {
+            textDisplay.innerHTML = currentText.split('').map((char, idx) => {
+                let className = '';
+                if (idx < currentIndex) {
+                    className = 'char-correct';
+                } else if (idx === currentIndex) {
+                    className = 'char-current';
+                }
+                return `<span class="${className}">${char === ' ' ? '&nbsp;' : char}</span>`;
+            }).join('');
+        }
+
+        function focusInput() {
+            typingInput.focus();
+            if (startTime === null) {
+                startPrompt.classList.add('hidden');
+            }
+        }
+
+        function startTimer() {
+            startTime = Date.now();
+            timerInterval = setInterval(updateStats, 100);
+        }
+
+        function updateStats() {
+            if (!startTime) return;
+            
+            const elapsed = (Date.now() - startTime) / 1000;
+            const minutes = elapsed / 60;
+            
+            const timeStr = Math.floor(elapsed / 60) + ':' + String(Math.floor(elapsed % 60)).padStart(2, '0');
+            document.getElementById('statTime').textContent = timeStr;
+            document.getElementById('liveTimer').textContent = timeStr;
+            
+            const cpm = minutes > 0 ? Math.round(currentIndex / minutes) : 0;
+            document.getElementById('statCPM').textContent = cpm;
+            
+            document.getElementById('statChars').textContent = currentIndex;
+            document.getElementById('statErrors').textContent = errors;
+            
+            const accuracy = totalCharsTyped > 0 ? Math.round(((totalCharsTyped - errors) / totalCharsTyped) * 100) : 100;
+            document.getElementById('statAccuracy').textContent = accuracy + '%';
+        }
+
+        function completeTest() {
+            clearInterval(timerInterval);
+            isTestComplete = true;
+            
+            const elapsed = (Date.now() - startTime) / 1000;
+            const minutes = elapsed / 60;
+            const cpm = Math.round(currentIndex / minutes);
+            const accuracy = totalCharsTyped > 0 ? Math.round(((totalCharsTyped - errors) / totalCharsTyped) * 100) : 100;
+            const timeStr = Math.floor(elapsed / 60) + ':' + String(Math.floor(elapsed % 60)).padStart(2, '0');
+            
+            document.getElementById('finalCPM').textContent = cpm;
+            document.getElementById('finalAccuracy').textContent = accuracy + '%';
+            document.getElementById('finalTime').textContent = timeStr;
+            document.getElementById('finalChars').textContent = currentIndex;
+            document.getElementById('finalErrors').textContent = errors;
+            
+            resultsSection.classList.remove('hidden');
+            resultsSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        function resetTest() {
+            currentIndex = 0;
+            startTime = null;
+            errors = 0;
+            totalCharsTyped = 0;
+            isTestComplete = false;
+            
+            clearInterval(timerInterval);
+            typingInput.value = '';
+            
+            document.getElementById('statTime').textContent = '0:00';
+            document.getElementById('liveTimer').textContent = '0:00';
+            document.getElementById('statChars').textContent = '0';
+            document.getElementById('statCPM').textContent = '0';
+            document.getElementById('statErrors').textContent = '0';
+            document.getElementById('statAccuracy').textContent = '100%';
+            
+            resultsSection.classList.add('hidden');
+            startPrompt.classList.remove('hidden');
+            
+            if (currentText) {
+                displayText();
+            }
+        }
+
+        typingInput.addEventListener('input', (e) => {
+            if (isTestComplete) return;
+            
+            if (startTime === null) {
+                startTimer();
+            }
+            
+            const typed = e.target.value;
+            const expectedChar = currentText[currentIndex];
+            
+            if (typed === expectedChar) {
+                currentIndex++;
+                totalCharsTyped++;
+                typingInput.value = '';
+                
+                if (currentIndex === currentText.length) {
+                    completeTest();
+                } else {
+                    displayText();
+                    updateStats();
+                }
+            } else if (typed.length > 0) {
+                errors++;
+                totalCharsTyped++;
+                typingInput.value = '';
+                updateStats();
+                
+                // Visuelles Feedback für Fehler
+                textDisplay.children[currentIndex].classList.add('char-incorrect');
+                setTimeout(() => {
+                    if (textDisplay.children[currentIndex]) {
+                        textDisplay.children[currentIndex].classList.remove('char-incorrect');
+                        displayText();
+                    }
+                }, 200);
+            }
+        });
+
+        // Initial laden
+        loadNewText();
+    </script>
+</body>
+</html>
